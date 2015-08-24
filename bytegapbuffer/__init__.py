@@ -64,7 +64,11 @@ class bytegapbuffer(MutableSequence):
     def __delitem__(self, k):
         start, stop = None, None
         if isinstance(k, int):
-            start, start = k, k+1
+            if k < 0:
+                k += len(self)
+            start, stop = k, k+1
+            if start >= len(self):
+                raise IndexError('invalid index: %r' % k)
         elif isinstance(k, slice):
             start, stop, _ = k.indices(len(self))
         else:
@@ -76,7 +80,7 @@ class bytegapbuffer(MutableSequence):
 
         assert stop > start
         assert start >= 0 and start < len(self)
-        assert stop >= 0 and start < len(self)
+        assert stop >= 0 and stop <= len(self)
 
         n_to_del = stop - start
         if stop == self._gap_start:

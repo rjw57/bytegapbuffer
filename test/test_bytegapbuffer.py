@@ -195,6 +195,18 @@ def test_delete(x, b, idx):
     assert x == b
 
 @pytest.mark.parametrize('x,b,idx', _insert_params_no_iv())
+def test_delete_single(x, b, idx):
+    logging.info('input x: %r', x)
+    logging.info('input b: %r', b)
+
+    if idx < len(x):
+        del x[idx]
+        logging.info('x after: %r', x)
+        del b[idx]
+        logging.info('b after: %r', b)
+        assert x == b
+
+@pytest.mark.parametrize('x,b,idx', _insert_params_no_iv())
 def test_insert_non_empty_sequence(x, b, idx):
     logging.info('input x: %r', x)
     logging.info('input b: %r', b)
