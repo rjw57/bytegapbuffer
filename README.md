@@ -29,7 +29,9 @@ add a test for the functionality.
 Current features:
 
 * Retrieving element(s) via ``[i]``, ``[i:j]`` and ``[i:j:k]`` style slicing.
-* Insertion of elements via ``insert()``.
+* Deletion of element(s) via ``[i]``, ``[i:j]`` style slicing.
+* Insertion of element(s) via ``[i]``, ``[i:j]`` style slicing.
+* Insertion of element via ``insert()``.
 * Length query via ``len()``.
 * Sub-sequence search via ``index()`` and ``find()`` methods.
 * Equality (and inequality) testing.
