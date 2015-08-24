@@ -47,5 +47,5 @@ The Travis builds are set up to run the test suite on the latest released Python
 
 (C) Copyright 2015 Rich Wareham
 
-This code is licensed under a MIT-style licence. See the [COPYING](COPYING.txt)
+This code is licensed under a MIT-style licence. See the [LICENSE](LICENSE.txt)
 file for details.
