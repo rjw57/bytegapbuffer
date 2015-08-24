@@ -245,7 +245,7 @@ def test_extend_non_empty(x, b):
     logging.info('input x: %r', x)
     logging.info('input b: %r', b)
 
-    s = [1,2,3,4]
+    s = [1, 2, 3, 4]
     x.extend(s)
     logging.info('x after: %r', x)
     b.extend(s)
