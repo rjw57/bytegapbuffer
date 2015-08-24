@@ -1,5 +1,8 @@
 # bytegapbuffer: gap buffer backed bytearray class for Python
 
+[![Build
+Status](https://travis-ci.org/rjw57/bytegapbuffer.svg?branch=master)](https://travis-ci.org/rjw57/bytegapbuffer)
+
 An Python ``bytearray`` work alike which uses a
 [gap buffer](https://en.wikipedia.org/wiki/Gap_buffer) as underlying storage.
 It is a data structure optimised for locally coherent insertions and deletions.
