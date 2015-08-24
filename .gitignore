@@ -1,0 +1,10 @@
+# Python byte code cache
+*.pyc
+__pycache__
+
+# setuptools detritus
+*.egg-info
+
+# other temporary files
+.coverage
+.tox
