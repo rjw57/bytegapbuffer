@@ -132,12 +132,19 @@ def test_index(x, b):
                 assert x.index(v, i, j) == b.index(v, i, j)
 
 def _insert_params():
-    ins_vals = [0, 0xff, ord('A')]
+    # pylint: disable=protected-access
+    ins_vals = [bgb._GAP_BYTE, ord('A')]
     for iv in ins_vals:
-        for idx in range(-3, 40):
+        for idx in range(-1, 40):
             for x, b in _test_vectors_and_bufs():
                 if idx <= len(x) + 2:
                     yield x, b, iv, idx
+
+def _insert_params_no_iv():
+    for idx in range(-1, 40):
+        for x, b in _test_vectors_and_bufs():
+            if idx <= len(x) + 2:
+                yield x, b, idx
 
 @pytest.mark.parametrize('x,b,iv,idx', _insert_params())
 def test_insert(x, b, iv, idx):
@@ -152,6 +159,53 @@ def test_insert(x, b, iv, idx):
     logging.info('b after insert: %r', b)
     assert x == b
 
+@pytest.mark.parametrize('x,b,iv,idx', _insert_params())
+def test_insert_via_slice(x, b, iv, idx):
+    logging.info('input x: %r', x)
+    logging.info('input b: %r', b)
+
+    x[idx:idx] = [iv]
+    logging.info('x after insert: %r', x)
+    assert x != b
+
+    b[idx:idx] = [iv]
+    logging.info('b after insert: %r', b)
+    assert x == b
+
+@pytest.mark.parametrize('x,b,idx', _insert_params_no_iv())
+def test_insert_empty_sequence(x, b, idx):
+    logging.info('input x: %r', x)
+    logging.info('input b: %r', b)
+
+    x[idx:idx+2] = []
+    logging.info('x after: %r', x)
+    b[idx:idx+2] = []
+    logging.info('b after: %r', b)
+    assert x == b
+
+@pytest.mark.parametrize('x,b,idx', _insert_params_no_iv())
+def test_delete(x, b, idx):
+    logging.info('input x: %r', x)
+    logging.info('input b: %r', b)
+
+    del x[idx:idx+2]
+    logging.info('x after: %r', x)
+    del b[idx:idx+2]
+    logging.info('b after: %r', b)
+    assert x == b
+
+@pytest.mark.parametrize('x,b,idx', _insert_params_no_iv())
+def test_insert_non_empty_sequence(x, b, idx):
+    logging.info('input x: %r', x)
+    logging.info('input b: %r', b)
+
+    s = bytearray(b'some-sequence')
+    x[idx:idx+2] = s
+    logging.info('x after: %r', x)
+    b[idx:idx+2] = s
+    logging.info('b after: %r', b)
+    assert x == b
+
 @pytest.mark.parametrize('x,b', _test_vectors_and_bufs())
 def test_copy(x, b):
     assert x == b
@@ -161,3 +215,39 @@ def test_copy(x, b):
     assert b != b2
     assert len(b2) == len(b) + 1
     assert b2[0] == 54
+
+@pytest.mark.parametrize('x,b', _test_vectors_and_bufs())
+def test_append(x, b):
+    logging.info('input x: %r', x)
+    logging.info('input b: %r', b)
+
+    s = 45
+    x.append(s)
+    logging.info('x after: %r', x)
+    b.append(s)
+    logging.info('b after: %r', b)
+    assert x == b
+
+@pytest.mark.parametrize('x,b', _test_vectors_and_bufs())
+def test_extend_empty(x, b):
+    logging.info('input x: %r', x)
+    logging.info('input b: %r', b)
+
+    s = []
+    x.extend(s)
+    logging.info('x after: %r', x)
+    b.extend(s)
+    logging.info('b after: %r', b)
+    assert x == b
+
+@pytest.mark.parametrize('x,b', _test_vectors_and_bufs())
+def test_extend_non_empty(x, b):
+    logging.info('input x: %r', x)
+    logging.info('input b: %r', b)
+
+    s = [1,2,3,4]
+    x.extend(s)
+    logging.info('x after: %r', x)
+    b.extend(s)
+    logging.info('b after: %r', b)
+    assert x == b

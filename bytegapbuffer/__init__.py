@@ -1,18 +1,24 @@
+from __future__ import division
+
 # pylint: disable=redefined-builtin
 from builtins import range
 
 from future import standard_library
 standard_library.install_aliases()
 
-from itertools import zip_longest
 import struct
+from collections import MutableSequence
+from itertools import zip_longest
 
-class bytegapbuffer(object):
+class bytegapbuffer(MutableSequence):
     _GAP_BYTE = 0xFF
-    _GAP_BLOCK_SIZE = 64
+    _GAP_BLOCK_SIZE = 4<<10 # 4KiB
 
-    def __init__(self, other=b'', init_gap_size=64):
+    def __init__(self, other=b'', init_gap_size=None):
         self._ba = bytearray(other)
+        if init_gap_size is None:
+            # heuristic to choose initial gap size
+            init_gap_size = max(8, min(self._GAP_BLOCK_SIZE, len(self._ba) >> 1))
         self._gap_start = len(self._ba) # start of gap
         self._gap_end = self._gap_start + init_gap_size # just past end of gap
         self._ba.extend(self._GAP_BYTE for _ in range(self._gap_size))
@@ -55,9 +61,54 @@ class bytegapbuffer(object):
         self._ba[self._gap_start] = v
         self._gap_start += 1
 
+    def __delitem__(self, k):
+        start, stop = None, None
+        if isinstance(k, int):
+            start, start = k, k+1
+        elif isinstance(k, slice):
+            start, stop, _ = k.indices(len(self))
+        else:
+            raise TypeError('invalid key type: %s' % type(k))
+
+        if stop <= start:
+            # a nop
+            return
+
+        assert stop > start
+        assert start >= 0 and start < len(self)
+        assert stop >= 0 and start < len(self)
+
+        n_to_del = stop - start
+        if stop == self._gap_start:
+            # We can just grow the gap towards the start.
+            self._gap_start -= n_to_del
+        elif start == self._gap_start:
+            # We can just grow the gap towards the end.
+            self._gap_end += n_to_del
+        else:
+            # Move the gap so that the sequence to delete is just
+            # at the end of the gap
+            self._move_gap(start)
+
+            # grow the gap to cover it
+            self._gap_end += n_to_del
+
+    def __setitem__(self, k, v):
+        if isinstance(k, int):
+            raise NotImplementedError()
+        elif isinstance(k, slice):
+            start, stop, _ = k.indices(len(self))
+
+            del self[start:stop]
+            for offset, elem in enumerate(v):
+                self.insert(offset + start, elem)
+        else:
+            raise TypeError('invalid key type: %s' % type(k))
+
     # SEQUENCE METHODS
 
     def index(self, x, i=None, j=None):
+        # pylint: disable=arguments-differ
         f = self.find(x, i, j)
         if f != -1:
             return f
