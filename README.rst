@@ -57,9 +57,9 @@ latest released Python 2 and Python 3 versions.
 Licence
 -------
 
-(C) Copyright 2015 Rich Wareham
+Copyright (C) 2015 Rich Wareham
 
-This code is licensed under a MIT-style licence. See the
+This code is licensed under a BSD-style licence. See the
 `LICENSE <LICENSE.txt>`__ file for details.
 
 .. |Build Status| image:: https://travis-ci.org/rjw57/bytegapbuffer.svg?branch=master
