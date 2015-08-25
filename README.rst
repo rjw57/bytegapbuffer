@@ -9,8 +9,26 @@ storage. It is a data structure optimised for locally coherent
 insertions and deletions. It is the usual data structure in text
 editors.
 
+Installation
+------------
+
+Installation is via ``pip``. To install the latest release version:
+
+.. code:: console
+
+    $ pip install bytegapbuffer
+
+To install the current development version from git:
+
+.. code:: console
+
+    $ pip install git+https://github.com/rjw57/bytegapbuffer
+
 Usage
 -----
+
+The ``bytegapbuffer`` collection aims to behave just like a ``bytearray``. For
+example:
 
 .. code:: python
 
