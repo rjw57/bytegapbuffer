@@ -26,7 +26,7 @@ Status
 
 This project is used as part of a personal project of mine and, as such,
 implements just enough of the sequence, mutable sequence and bytearray
-interface for my needs. Pull requests adding missing functionality is
+interface for my needs. Pull requests adding missing functionality are
 welcome. Please also add a test for the functionality.
 
 Current features:
