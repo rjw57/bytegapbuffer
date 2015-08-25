@@ -3,7 +3,7 @@ bytegapbuffer: gap buffer backed bytearray class for Python
 
 |Build Status|
 
-An Python ``bytearray`` work alike which uses a `gap
+A Python ``bytearray`` work alike which uses a `gap
 buffer <https://en.wikipedia.org/wiki/Gap_buffer>`__ as underlying
 storage. It is a data structure optimised for locally coherent
 insertions and deletions. It is the usual data structure in text
