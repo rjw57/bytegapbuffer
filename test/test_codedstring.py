@@ -274,3 +274,13 @@ def test_set_index(s, cs):
 def test_slice_empty():
     cs = codedstring()
     assert cs[45:100] == ''
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_iteration(s, cs):
+    assert len(s) == len(cs)
+    for a, b in zip(s, cs):
+        assert a == b
+
+
