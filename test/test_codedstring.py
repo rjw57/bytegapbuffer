@@ -22,6 +22,11 @@ with open(os.path.join(DATA_DIR, 'UTF-8-test.txt'), 'rb') as f:
     TORTURE_BUF = f.read()
 
 @pytest.fixture
+def empty_string():
+    s = ''
+    return s, codedstring()
+
+@pytest.fixture
 def ascii_string():
     s = 'hello, world'
     return s, codedstring(s.encode('utf-8'))
@@ -53,7 +58,7 @@ def test_buffer_property(demo_string):
     assert cs.buffer == bytearray(s.encode('utf-8'))
 
 @pytest.mark.parametrize('s,cs', [
-    ascii_string(), demo_string()
+    ascii_string(), demo_string(), empty_string()
 ])
 def test_length(s, cs):
     assert len(s) == len(cs)
@@ -66,7 +71,7 @@ def test_simple_indexing(demo_string):
         assert s[-idx-1] == cs[-idx-1]
 
 @pytest.mark.parametrize('s,cs', [
-    ascii_string(), demo_string()
+    ascii_string(), demo_string(), empty_string()
 ])
 def test_slicing(s, cs):
     for idx in range(0, len(s), 10):
