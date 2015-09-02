@@ -283,4 +283,30 @@ def test_iteration(s, cs):
     for a, b in zip(s, cs):
         assert a == b
 
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_byte_slice(s, cs):
+    with pytest.raises(IndexError):
+        cs.byte_slice(len(s))
+
+    for idx in range(len(s)):
+        bs = cs.buffer[cs.byte_slice(idx)]
+        assert s[idx] == codecs.decode(bs, 'utf-8')
+
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_map_byte_idx(s, cs):
+    b = cs.buffer
+
+    with pytest.raises(IndexError):
+        cs.map_byte_index(len(b))
+
+    for idx in range(len(b)):
+        r_idx = cs.map_byte_index(idx)
+        slc = cs.byte_slice(r_idx)
+        assert idx >= slc.start
+        assert idx < slc.stop
 

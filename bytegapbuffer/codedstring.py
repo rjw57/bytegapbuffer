@@ -87,11 +87,46 @@ class codedstring(MutableSequence):
     def encoding(self):
         return self._encoding
 
+    def byte_slice(self, idx):
+        """Return a slice for the underlying buffer corresponding to the rune at
+        index idx. Raises IndexError if the index is invalid.
+
+        """
+        idx = idx if idx >= 0 else len(self) + idx
+        byte_idx, rune_idx, _, entry = self._find_index_entry_for_rune_index(idx)
+        bpr, _ = entry
+        start = byte_idx + bpr * (idx - rune_idx)
+        return slice(start, start + bpr)
+
+    def map_byte_index(self, idx):
+        """Return the index of the rune whose representation includes the byte
+        at index *idx* in the underlying buffer. Raises IndexError if idx is
+        out of range.
+
+        """
+        idx = idx if idx >= 0 else len(self._buf) + idx
+        if idx >= len(self._buf):
+            raise IndexError('index out of range')
+
+        # walk the index until we have an entry in this range
+        byte_idx, rune_idx = 0, 0
+        for bpr, n_runes in self._index:
+            n_bytes = bpr * n_runes
+
+            if byte_idx <= idx and byte_idx + n_bytes > idx:
+                return rune_idx + (idx - byte_idx) // bpr
+
+            byte_idx += n_bytes
+            rune_idx += n_runes
+
+        # never reached
+        assert False
+
     def __getitem__(self, k):
         if isinstance(k, int):
             k = k if k >= 0 else k + len(self)
             return codecs.decode(
-                self._buf[self._rune_index_to_byte_slice(k)],
+                self._buf[self.byte_slice(k)],
                 self._encoding, 'replace'
             )
         elif isinstance(k, slice):
@@ -102,12 +137,12 @@ class codedstring(MutableSequence):
             stop = min(stop, len(self))
 
             if start < len(self):
-                byte_start = self._rune_index_to_byte_slice(start).start
+                byte_start = self.byte_slice(start).start
             else:
                 byte_start = len(self._buf)
 
             if stop < len(self):
-                byte_stop = self._rune_index_to_byte_slice(stop).start
+                byte_stop = self.byte_slice(stop).start
             else:
                 byte_stop = len(self._buf)
 
@@ -300,12 +335,6 @@ class codedstring(MutableSequence):
             rune_idx += n_runes
 
         raise IndexError('Invalid index: %s' % idx)
-
-    def _rune_index_to_byte_slice(self, idx):
-        byte_idx, rune_idx, _, entry = self._find_index_entry_for_rune_index(idx)
-        bpr, _ = entry
-        start = byte_idx + bpr * (idx - rune_idx)
-        return slice(start, start + bpr)
 
     def _new_decoder(self):
         return codecs.getincrementaldecoder(self._encoding)('replace')
