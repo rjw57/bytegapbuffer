@@ -7,6 +7,40 @@ from collections import MutableSequence, deque
 
 from bytegapbuffer import bytegapbuffer
 
+def _index_byte_array(buf, decoder):
+    index = deque()
+    buf_len = len(buf)
+    next_entry = None
+    length = 0
+    n_bytes = 0
+    for b_idx in range(buf_len):
+        final = b_idx == buf_len - 1
+        n_bytes += 1
+        runes = decoder.decode(buf[b_idx:b_idx+1], final)
+        if len(runes) == 0:
+            continue
+
+        # compute bytes per rune
+        bpr = n_bytes // len(runes)
+        n_bytes = 0
+        length += len(runes)
+
+        for _ in range(len(runes)):
+            if next_entry is None:
+                next_entry = (bpr, 1)
+            elif next_entry[0] != bpr:
+                index.append(next_entry)
+                next_entry = (bpr, 1)
+            else:
+                assert bpr == next_entry[0]
+                next_entry = (bpr, 1 + next_entry[1])
+
+    # add final entry if necessary
+    if next_entry is not None:
+        index.append(next_entry)
+
+    return index, length
+
 class codedstring(MutableSequence):
     """A wrapper around a bytegapbuffer which is intended to manage coded
     Unicode strings.
@@ -89,45 +123,6 @@ class codedstring(MutableSequence):
     def __len__(self):
         return self._length
 
-    def _form_initial_index(self):
-        index = deque()
-        decoder = self._new_decoder()
-        buf_len = len(self._buf)
-        next_entry = None
-        length = 0
-        n_bytes = 0
-        for b_idx in range(len(self._buf)):
-            final = b_idx == buf_len - 1
-            n_bytes += 1
-            runes = decoder.decode(self._buf[b_idx:b_idx+1], final)
-            if len(runes) == 0:
-                continue
-
-            # compute bytes per rune
-            bpr = n_bytes // len(runes)
-            n_bytes = 0
-            length += len(runes)
-
-            for _ in range(len(runes)):
-                if next_entry is None:
-                    next_entry = (bpr, 1)
-                elif next_entry[0] != bpr:
-                    index.append(next_entry)
-                    next_entry = (bpr, 1)
-                else:
-                    assert bpr == next_entry[0]
-                    next_entry = (bpr, 1 + next_entry[1])
-
-        # add final entry if necessary
-        if next_entry is not None:
-            index.append(next_entry)
-
-        # assign index
-        self._index = list(index)
-
-        # cache length
-        self._length = length
-
     def __delitem__(self, k):
         if isinstance(k, int):
             k = k if k >= 0 else k + len(self)
@@ -200,10 +195,91 @@ class codedstring(MutableSequence):
             raise TypeError('deletion not supported for type: %r' % (type(k),))
 
     def __setitem__(self, k, v):
-        raise NotImplementedError()
+        if isinstance(k, int):
+            self[k:k+1] = v
+        elif isinstance(k, slice):
+            # find start index
+            start, stop, _ = k.indices(len(self))
+            assert start <= len(self)
+            assert stop >= start
+
+            # delete items to replace
+            del self[start:stop]
+
+            # Encode the item using the encoding and then index it. This is a
+            # little inefficient since we decode for no good reason. A better
+            # solution would be to use an incremental encoder and build the
+            # index as we encode. For the moment we accept the additional decode
+            # overhead for the sake of simplicity.
+            encoded_v = codecs.encode(v, self._encoding, 'replace')
+            v_idx, v_len = _index_byte_array(encoded_v, self._new_decoder())
+
+            # handle special cases
+            if len(self._index) == 0:
+                # simple case if the index is currently empty :)
+                self._buf[:] = encoded_v
+                self._index = list(v_idx)
+                self._length = v_len
+                return
+            elif len(v_idx) == 0:
+                # nothing to add
+                return
+
+            # At this point we know there is at least one item in the current
+            # index and the index for the new value. Find the insertion point in
+            # the current index.
+            if start < len(self):
+                ie = self._find_index_entry_for_rune_index(start)
+                byte_idx, rune_idx, entry_idx, entry = ie
+
+                # split entry at insertion point
+                bpr, n_runes = entry
+                delta = start - rune_idx
+                assert delta >= 0 and delta < n_runes
+                head, tail = (bpr, delta), (bpr, n_runes - delta)
+
+                # prepend head to v_idx
+                if head[0] == v_idx[0][0]:
+                    v_idx[0] = (v_idx[0][0], v_idx[0][1] + head[1])
+                elif head[1] > 0:
+                    v_idx.appendleft(head)
+
+                # append tail to v_idx
+                if tail[0] == v_idx[-1][0]:
+                    v_idx[-1] = (v_idx[-1][0], v_idx[-1][1] + tail[1])
+                elif tail[1] > 0:
+                    v_idx.append(tail)
+
+                # insert encoded data
+                byte_idx += bpr * delta
+                self._buf[byte_idx:byte_idx] = encoded_v
+
+                # replace index entry
+                self._index[entry_idx:entry_idx+1] = v_idx
+
+                # increase length
+                self._length += v_len
+            else:
+                # this is a pure append
+                if self._index[-1][0] == v_idx[0][0]:
+                    self._index[-1] = (
+                        v_idx[0][0], v_idx[0][1] + self._index[-1][1]
+                    )
+                    v_idx.popleft()
+                self._buf[len(self._buf):] = encoded_v
+                self._index.extend(v_idx)
+                self._length += v_len
+        else:
+            raise TypeError('deletion not supported for type: %r' % (type(k),))
 
     def insert(self, idx, v):
-        self[idx:idx] = [v]
+        self[idx:idx] = v
+
+    def _form_initial_index(self):
+        index, self._length = _index_byte_array(
+            self._buf, self._new_decoder()
+        )
+        self._index = list(index)
 
     def _find_index_entry_for_rune_index(self, idx):
         """Return a tuple giving the starting byte index, starting rune index
@@ -234,5 +310,3 @@ class codedstring(MutableSequence):
     def _new_decoder(self):
         return codecs.getincrementaldecoder(self._encoding)('replace')
 
-    def _new_encoder(self):
-        return codecs.getincrementalencoder(self._encoding)('replace')

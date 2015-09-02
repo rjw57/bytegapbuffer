@@ -58,6 +58,10 @@ def test_buffer_property(demo_string):
     s, cs = demo_string
     assert cs.buffer == bytearray(s.encode('utf-8'))
 
+def test_encoding_property(demo_string):
+    s, cs = demo_string
+    assert cs.encoding == 'utf-8'
+
 @pytest.mark.parametrize('s,cs', [
     ascii_string(), demo_string(), empty_string()
 ])
@@ -136,3 +140,137 @@ def test_empty_slice_delete(s, cs):
     assert len(cs) == len(s)
     assert cs[len(s)-1] == s[len(s)-1]
 
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_insert(s, cs):
+    ins_idx = len(s) >> 1
+
+    s = list(s)
+    s.insert(0, 'a*******')
+    s = ''.join(s)
+    s = list(s)
+    s.insert(-1, 'b*******')
+    s = ''.join(s)
+    s = list(s)
+    s.insert(ins_idx, '\N{LONG LEFTWARDS ARROW}*******')
+    s = ''.join(s)
+
+    cs.insert(0, 'a*******')
+    cs.insert(-1, 'b*******')
+    cs.insert(ins_idx, '\N{LONG LEFTWARDS ARROW}*******')
+
+    logging.info('     string: %s', s)
+    logging.info('codedstring: %s', codecs.decode(bytearray(cs.buffer), 'utf8'))
+
+    assert len(cs) == len(s)
+    for idx in range(len(s)):
+        assert s[idx] == cs[idx]
+
+def test_append_to_empty():
+    s = []
+    s[len(s):] = 'testing: \N{LONG LEFTWARDS ARROW}'
+    s = ''.join(s)
+
+    cs = codedstring()
+    cs[len(s):] = 'testing: \N{LONG LEFTWARDS ARROW}'
+
+    assert len(cs) == len(s)
+    for idx in range(len(s)):
+        assert s[idx] == cs[idx]
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_append(s, cs):
+    s = list(s)
+    s[len(s):] = 'testing: \N{LONG LEFTWARDS ARROW}'
+    s = ''.join(s)
+
+    cs[len(s):] = 'testing: \N{LONG LEFTWARDS ARROW}'
+
+    assert len(cs) == len(s)
+    for idx in range(len(s)):
+        assert s[idx] == cs[idx]
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_empty_append(s, cs):
+    s = list(s)
+    s[len(s):] = ''
+    s = ''.join(s)
+
+    cs[len(s):] = ''
+
+    assert len(cs) == len(s)
+    for idx in range(len(s)):
+        assert s[idx] == cs[idx]
+
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_slice_replace(s, cs):
+    idx = len(s) >> 1
+
+    s = list(s)
+    s[idx:idx+5] = 'testing: \N{LONG LEFTWARDS ARROW}'
+    s = ''.join(s)
+
+    cs[idx:idx+5] = 'testing: \N{LONG LEFTWARDS ARROW}'
+
+    assert len(cs) == len(s)
+    for idx in range(len(s)):
+        assert s[idx] == cs[idx]
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_slice_replace_empty(s, cs):
+
+    idx = len(s) >> 1
+
+    s = list(s)
+    s[idx:idx+5] = ''
+    s = ''.join(s)
+
+    cs[idx:idx+5] = ''
+
+    assert len(cs) == len(s)
+    for idx in range(len(s)):
+        assert s[idx] == cs[idx]
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_get_empty_slice(s, cs):
+    idx = len(cs) >> 1
+    assert cs[idx:idx] == ''
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_get_final_slice(s, cs):
+    idx = len(cs)
+    assert cs[idx:idx] == ''
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_set_index(s, cs):
+    idx = len(s) >> 1
+
+    c = '\N{LONG LEFTWARDS ARROW}'
+    s = list(s)
+    s[idx] = c
+    s = ''.join(s)
+    cs[idx] = c
+
+    assert len(cs) == len(s)
+    for idx in range(len(s)):
+        assert s[idx] == cs[idx]
+
+def test_slice_empty():
+    cs = codedstring()
+    assert cs[45:100] == ''
