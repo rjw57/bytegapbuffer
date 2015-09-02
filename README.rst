@@ -9,6 +9,10 @@ storage. It is a data structure optimised for locally coherent
 insertions and deletions. It is the usual data structure in text
 editors.
 
+A utility class, ``codedstring``, is provided which provides a string-like view
+on a ``bytegapbuffer`` transparently encodes and decodes Unicode strings. It
+provides efficient common-case indexing.
+
 Installation
 ------------
 
@@ -58,6 +62,8 @@ Current features:
 -  Sub-sequence search via ``index()`` and ``find()`` methods.
 -  Equality (and inequality) testing.
 -  Iteration over contents.
+-  Efficient ``codedstring`` wrapper allowing ``bytegapbuffer`` to be used as
+   underlying storage in a text editor.
 
 All of the above should work exactly as the ``bytearray`` object does.
 (This is tested in the test suite.) Additional non-\ ``bytearray``
