@@ -4,6 +4,7 @@ Tests for coded string.
 """
 from __future__ import unicode_literals
 
+import array
 import codecs
 import logging
 import os
@@ -29,7 +30,7 @@ def empty_string():
 @pytest.fixture
 def ascii_string():
     s = 'hello, world'
-    return s, codedstring(s.encode('utf-8'))
+    return s, codedstring(bytegapbuffer(s.encode('utf-8')))
 
 @pytest.fixture
 def demo_string():
@@ -80,4 +81,58 @@ def test_slicing(s, cs):
         assert s[idx:idx+5] == cs[idx:idx+5]
         assert s[idx:idx+5:2] == cs[idx:idx+5:2]
         assert s[:-idx-1] == cs[:-idx-1]
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_single_delete(s, cs):
+    # use an list as a mutable string-like type
+    s = list(s)
+    for _ in range(min(10, len(s) - 1)):
+        idx = len(s) >> 1
+        del s[idx]
+        del cs[idx]
+
+        assert len(s) == len(cs)
+        for t_idx in range(0, len(s), 10):
+            assert s[t_idx] == cs[t_idx]
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_single_negative_delete(s, cs):
+    # use an list as a mutable string-like type
+    s = list(s)
+    for _ in range(min(10, len(s) - 1)):
+        idx = len(s) >> 1
+        del s[-idx-1]
+        del cs[-idx-1]
+
+        assert len(s) == len(cs)
+        for t_idx in range(0, len(s), 10):
+            assert s[t_idx] == cs[t_idx]
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_slice_delete(s, cs):
+    # use an list as a mutable string-like type
+    s = list(s)
+    for _ in range(4):
+        idx = len(s) >> 1
+        del s[idx:idx+5]
+        del cs[idx:idx+5]
+
+        assert len(s) == len(cs)
+        for t_idx in range(0, len(s), 10):
+            assert s[t_idx] == cs[t_idx]
+
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string()
+])
+def test_empty_slice_delete(s, cs):
+    for idx in range(-len(s)-10, len(s)+10, 20):
+        del cs[idx:idx]
+    assert len(cs) == len(s)
+    assert cs[len(s)-1] == s[len(s)-1]
 

@@ -3,11 +3,11 @@ from __future__ import unicode_literals, division
 from builtins import range
 
 import codecs
-from collections import Sequence, deque
+from collections import MutableSequence, deque
 
 from bytegapbuffer import bytegapbuffer
 
-class codedstring(Sequence):
+class codedstring(MutableSequence):
     """A wrapper around a bytegapbuffer which is intended to manage coded
     Unicode strings.
 
@@ -128,20 +128,108 @@ class codedstring(Sequence):
         # cache length
         self._length = length
 
-    def _rune_index_to_byte_slice(self, idx):
+    def __delitem__(self, k):
+        if isinstance(k, int):
+            k = k if k >= 0 else k + len(self)
+
+            # find the index entry for this rune index
+            ie = self._find_index_entry_for_rune_index(k)
+            byte_idx, rune_idx, entry_idx, entry = ie
+            bpr, n_runes = entry
+
+            # delete from underlying buffer
+            assert k >= rune_idx
+            byte_start = byte_idx + bpr * (k - rune_idx)
+            byte_slice = slice(byte_start, byte_start + bpr)
+            del self._buf[byte_slice]
+
+            # update entry
+            if n_runes > 1:
+                self._index[entry_idx] = (bpr, n_runes - 1)
+            else:
+                del self._index[entry_idx]
+
+            # update length
+            self._length -= 1
+        elif isinstance(k, slice):
+            start, stop, _ = k.indices(len(self))
+            start = min(start, len(self))
+            stop = min(stop, len(self))
+
+            if start >= len(self):
+                # do nothing
+                return
+
+            n_to_delete = stop - start
+            if n_to_delete == 0:
+                # do nothing
+                return
+
+            del_idx = start
+
+            # deleting one rune at a time may change the index entry but never
+            # change the starting indices
+            ie = self._find_index_entry_for_rune_index(del_idx)
+            byte_idx, rune_idx, entry_idx, entry = ie
+            for _ in range(n_to_delete):
+                entry = self._index[entry_idx]
+                bpr, n_runes = entry
+
+                # check that the entry still covers the deletion range
+                if del_idx >= rune_idx + n_runes:
+                    # need to re-scan index
+                    ie = self._find_index_entry_for_rune_index(del_idx)
+                    byte_idx, rune_idx, entry_idx, entry = ie
+                    bpr, n_runes = entry
+
+                assert del_idx >= rune_idx and del_idx < rune_idx + n_runes
+
+                byte_start = byte_idx + bpr * (del_idx - rune_idx)
+                byte_slice = slice(byte_start, byte_start + bpr)
+                del self._buf[byte_slice]
+
+                # update entry
+                if n_runes > 1:
+                    self._index[entry_idx] = (bpr, n_runes - 1)
+                else:
+                    del self._index[entry_idx]
+
+            # update length
+            self._length -= n_to_delete
+        else:
+            raise TypeError('deletion not supported for type: %r' % (type(k),))
+
+    def __setitem__(self, k, v):
+        raise NotImplementedError()
+
+    def insert(self, idx, v):
+        self[idx:idx] = [v]
+
+    def _find_index_entry_for_rune_index(self, idx):
+        """Return a tuple giving the starting byte index, starting rune index
+        index into the _index sequence and index entry for the index entry
+        containing the rune index *idx*. Raises IndexError if idx is invalid.
+
+        """
         if idx < 0:
             raise IndexError('Invalid index: %s' % idx)
 
         byte_idx, rune_idx = 0, 0
-        for bpr, n_runes in self._index:
+        for entry_idx, entry in enumerate(self._index):
+            bpr, n_runes = entry
             if rune_idx <= idx and rune_idx + n_runes > idx:
-                start = byte_idx + bpr * (idx - rune_idx)
-                return slice(start, start + bpr)
+                return byte_idx, rune_idx, entry_idx, entry
 
             byte_idx += bpr * n_runes
             rune_idx += n_runes
 
         raise IndexError('Invalid index: %s' % idx)
+
+    def _rune_index_to_byte_slice(self, idx):
+        byte_idx, rune_idx, _, entry = self._find_index_entry_for_rune_index(idx)
+        bpr, _ = entry
+        start = byte_idx + bpr * (idx - rune_idx)
+        return slice(start, start + bpr)
 
     def _new_decoder(self):
         return codecs.getincrementaldecoder(self._encoding)('replace')
