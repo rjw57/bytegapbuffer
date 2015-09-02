@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="bytegapbuffer",
-    version="0.9.1",
+    version="0.9.2",
     packages=find_packages(exclude=['test']),
     description="A bytearray work-alike using a gap buffer for storage",
     author="Rich Wareham",
