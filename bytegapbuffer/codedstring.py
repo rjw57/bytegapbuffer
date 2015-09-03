@@ -155,6 +155,15 @@ class codedstring(MutableSequence):
 
         raise TypeError('indexing not supported for %r' % (type(k),))
 
+    def __iter__(self):
+        byte_idx = 0
+        for bpr, n_runes in self._index:
+            slc = slice(byte_idx, byte_idx + bpr * n_runes)
+            segment = codecs.decode(self._buf[slc], self._encoding, 'replace')
+            for ch in segment:
+                yield ch
+            byte_idx += bpr * n_runes
+
     def __len__(self):
         return self._length
 
