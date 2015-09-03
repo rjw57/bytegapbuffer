@@ -155,6 +155,33 @@ class codedstring(MutableSequence):
 
         raise TypeError('indexing not supported for %r' % (type(k),))
 
+    def slice_iter(self, s):
+        """Returns an iterable which gives the characters in the slice *s*. This
+        is more efficient than slicing via the [] operator since it does not
+        form an intermediate string representation. The downside of using this
+        method is that modifying a codedstring while iterating over it is a big
+        no-no.
+
+        """
+        start, stop, step = s.indices(len(self))
+        if start >= len(self):
+            return
+
+        bs = self.byte_slice(start)
+        decoder = self._new_decoder()
+        buf_len = len(self._buf)
+        n_runes = 0
+        n_to_output = stop - start
+        for byte_idx in range(bs.start, buf_len):
+            final = byte_idx == buf_len - 1
+            decoded_ch = decoder.decode(self._buf[byte_idx:byte_idx+1], final)
+            for c in decoded_ch:
+                if n_runes == n_to_output:
+                    raise StopIteration
+                if n_runes % step == 0:
+                    yield c
+                n_runes += 1
+
     def __iter__(self):
         byte_idx = 0
         for bpr, n_runes in self._index:

@@ -310,3 +310,12 @@ def test_map_byte_idx(s, cs):
         assert idx >= slc.start
         assert idx < slc.stop
 
+@pytest.mark.parametrize('s,cs', [
+    ascii_string(), demo_string(), empty_string()
+])
+def test_slice_iter(s, cs):
+    for idx in range(0, len(s), 10):
+        logging.info('index: %s', idx)
+        assert s[idx:idx+5] == ''.join(cs.slice_iter(slice(idx,idx+5)))
+        assert s[idx:idx+5:2] == ''.join(cs.slice_iter(slice(idx, idx+5, 2)))
+        assert s[-idx-10:-idx-1] == ''.join(cs.slice_iter(slice(-idx-10, -idx-1)))
