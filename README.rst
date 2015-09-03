@@ -56,7 +56,7 @@ Current features:
 -  Retrieving element(s) via ``[i]``, ``[i:j]`` and ``[i:j:k]`` style
    slicing.
 -  Deletion of element(s) via ``[i]``, ``[i:j]`` style slicing.
--  Insertion of element(s) via ``[i]``, ``[i:j]`` style slicing.
+-  Insertion/replacement of element(s) via ``[i]``, ``[i:j]`` style slicing.
 -  Insertion of element via ``insert()``.
 -  Length query via ``len()``.
 -  Sub-sequence search via ``index()`` and ``find()`` methods.
