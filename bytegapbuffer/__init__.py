@@ -99,7 +99,10 @@ class bytegapbuffer(MutableSequence):
 
     def __setitem__(self, k, v):
         if isinstance(k, int):
-            raise NotImplementedError()
+            k = k if k >= 0 else len(self) + k
+            if k < 0 or k >= len(self):
+                raise IndexError('index out of range')
+            self[k:k+1] = [v]
         elif isinstance(k, slice):
             start, stop, _ = k.indices(len(self))
 

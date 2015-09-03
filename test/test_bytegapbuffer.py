@@ -263,3 +263,10 @@ def test_extend_non_empty(x, b):
     b.extend(s)
     logging.info('b after: %r', b)
     assert x == b
+
+@pytest.mark.parametrize('x,b', _test_vectors_and_bufs())
+def test_set_item(x, b):
+    for idx in range(len(x)):
+        b[idx] = 45
+        assert b[idx] == 45
+    assert b == bytearray([45] * len(x))
